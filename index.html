@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stalcraft Price Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { user-select: none; outline: none; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to bottom, #252525, #1e1e1e);
+            color: #eee;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 14px;
+        }
+        .app-container {
+            background-color: #333;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 95%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 0;
+            overflow: hidden;
+        }
+        .app-header { 
+            padding: 10px 15px;
+            text-align: center; 
+            background-color: #333;
+            z-index: 2;
+            position: sticky;
+            top: 0;
+        }
+        .app-nav {
+            background-color: #444;
+            padding: 8px 15px;
+            border-radius: 8px;
+            margin: 0 15px 15px 15px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            position: sticky;
+            top: 58px;
+            z-index: 1;
+        }
+        .app-nav::-webkit-scrollbar { display: none; }
+        .app-nav ul { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+            display: flex; 
+            align-items: center; 
+        }
+        .app-nav li { margin-right: 10px; }
+        .app-nav a {
+            color: #ccc;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            white-space: nowrap;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .app-nav a.active { background-color: #555; color: white; }
+        .app-content {
+            padding: 15px;
+            overflow-y: auto;
+            flex-grow: 1;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #333;
+            -webkit-overflow-scrolling: touch;
+        }
+        .app-content::-webkit-scrollbar { width: 6px; }
+        .app-content::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        .app-content::-webkit-scrollbar-track { background: #333; }
+        .app-section {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .app-section.active {
+            display: block;
+            opacity: 1;
+            animation: fade-slide-in 0.4s ease-out;
+        }
+        .app-footer { 
+             padding: 20px 15px;
+             text-align: center; 
+             font-size: 0.8em; 
+             color: #888; 
+             background-color: #333;
+             z-index: 2;
+            bottom: 0;
+        }
+        .filter-options label, .filter-options select, .filter-options input, button, .key-input {
+            margin-bottom: 15px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 6px;
+            background-color: #444;
+            color: #ddd;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background-color: #555;
+            color: white;
+            border-color: #666;
+            cursor: pointer;
+        }
+        .tracked-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border: 1px solid #555;
+            background-color: #383838;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tracked-item.profitable { background-color: #27ae60; }
+        .tracked-item.unprofitable { background-color: #c0392b; }
+        .tracked-item:hover { background-color: #444; }
+        .tracked-item-name { flex-grow: 1; margin-right: 10px; }
+        #search-item {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 10px;
+            border: 1px solid #555;
+            border-radius: 20px;
+            background-color: #444;
+            color: #eee;
+            outline: none;
+            margin-bottom: 15px;
+        }
+         .search-container {
+             position: relative;
+         }
+        .item-details {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            width: 100%;
+            background-color: #444;
+            border: 1px solid #555;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0;
+            display: none;
+            box-sizing: border-box;
+        }
+        .item-details .item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            color: #eee;
+            border-bottom: 1px solid #555;
+            background-color: #383838;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .item-details .item:hover { background-color: #444; }
+        .item-details .item:last-child { border-bottom: none; }
+        .item-details .item h3 { margin: 0 0 5px 0; font-size: 1em; flex-grow: 1; }
+        .item-details .price-input { margin-left: auto; display: flex; align-items: center; }
+        .item-details input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #555;
+            color: #eee;
+            font-size: 14px;
+            margin-right: 8px;
+            box-sizing: border-box;
+        }
+        .item-details button.track-button {
+            background-color: #007bff;
+            color: white;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+            flex-shrink: 0;
+        }
+        .item-details button.track-button:hover { background-color: #0056b3; }
+        .filter-toggle {
+            background-color: #444;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .filter-toggle:hover { background-color: #555; }
+        .filter-toggle svg { transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
+        .filter-toggle.active svg { transform: rotate(90deg); }
+        .filter-options {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+            margin-bottom: 15px;
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        .filter-options.open { max-height: 200px; opacity: 1; transform: translateY(0); }
+        .filter-options input[type="number"] {
+            width: calc(50% - 5px);
+            display: inline-block;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+            margin-bottom: 10px;
+        }
+        .filter-options input[type="number"]:nth-child(odd) { margin-right: 10px; }
+        .filter-options input[type="number"]::-webkit-inner-spin-button,
+        .filter-options input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .filter-options select { 
+            width: 100%; 
+            box-sizing: border-box; 
+            margin-bottom: 10px;
+        }
+        #key-duration { -webkit-appearance: none; -moz-appearance: textfield; }
+        #key-duration::-webkit-inner-spin-button,
+        #key-duration::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        #generated-key {
+            text-align: center;
+            margin-top: 10px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+            word-break: break-all;
+        }
+        #generated-key:hover { background-color: #555; }
+        .notification {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color: #27ae60;
+            border-radius: 6px;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s ease, bottom 0.3s ease;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .notification.show {
+            opacity: 1;
+            animation: slide-up 0.3s ease-in-out;
+        }
+        @keyframes slide-up {
+            from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        .admin-block {
+            background-color: #383838;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        .admin-block h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: #fff;
+        }
+        .user-list {
+            max-height: 150px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #383838;
+            -webkit-overflow-scrolling: touch;
+        }
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #555;
+            font-size: 0.9em;
+            transition: background-color 0.2s ease;
+        }
+        .user-item:hover { background-color: #404040; }
+        .user-item:last-child { border-bottom: none; }
+        .user-info { flex-grow: 1; margin-right: 5px; }
+        .user-info span { display: block; }
+        .user-info .plan { color: #bbb; font-size: 0.85em; }
+        .disable-btn {
+            background-color: #c0392b;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+        .disable-btn:hover { background-color: #a93226; }
+        .broadcast-form textarea {
+            width: 100%;
+            height: 70px;
+            background-color: #444;
+            border: 1px solid #555;
+            border-radius: 6px;
+            color: #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            resize: none;
+            font-size: 0.9em;
+            box-sizing: border-box;
+        }
+        .pricing-editor {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .pricing-editor label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+            margin-bottom: 0;
+        }
+        .pricing-editor input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            margin-bottom: 0;
+            box-sizing: border-box;
+        }
+        .pricing-editor button {
+             width: auto;
+             padding: 5px 10px;
+             margin-left: auto;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .settings-grid label {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+             display: block;
+        }
+        .settings-grid input[type="number"],
+        .settings-grid select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 0;
+            box-sizing: border-box;
+        }
+        .pricing-table img {
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
+        }
+        .pricing-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .pricing-table th, .pricing-table td {
+            border: 1px solid #555;
+            padding: 8px;
+            text-align: center;
+        }
+        .pricing-table th {
+            background-color: #444;
+        }
+         .pricing-table td:first-child {
+             text-align: left;
+         }
+        @media (max-width: 400px) {
+            .app-container {
+                width: 100%;
+                border-radius: 0;
+                 min-height: 100vh;
+            }
+             .app-header, .app-nav, .app-footer {
+                 position: static;
+             }
+            .filter-options input[type="number"] {
+                width: 100%;
+                margin-right: 0;
+            }
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+            .pricing-editor {
+                 flex-direction: column;
+                 align-items: stretch;
+             }
+             .pricing-editor button {
+                 margin-left: 0;
+                 margin-top: 10px;
+             }
+            .notification {
+                bottom: 10px;
+                width: 90%;
+            }
+        }
+        @keyframes fade-slide-in {
+            from { 
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #admin input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        #admin input[type="number"]::-webkit-inner-spin-button,
+        #admin input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        #admin .pricing-editor input[type="number"] {
+            background-color: #444;
+            color: #ddd;
+            border: 1px solid #555;
+            border-radius: 6px;
+            width: 60px;
+            padding: 5px;
+            margin-bottom: 0;
+            font-size: 0.9em; 
+        }
+        #admin .settings-grid input[type="number"] {
+            background-color: #444;
+            color: #ddd;
+            border: 1px solid #555;
+            border-radius: 6px;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 0;
+            font-size: 0.9em; 
+        }
+        .search-results {
+            margin-top: 15px;
+        }
+        .search-result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #555;
+            background-color: #383838;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        .search-result-item:hover {
+            background-color: #444;
+        }
+        .item-info {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .item-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        .item-price {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .item-meta {
+            display: flex;
+            gap: 10px;
+            font-size: 0.85em;
+            color: #aaa;
+        }
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .tracking-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .tracking-btn:hover {
+            background-color: #0056b3;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading-spinner::after {
+            content: '';
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #ddd;
+            border-radius: 50%;
+            border-top-color: #007bff;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #aaa;
+        }
+        .item-image {
+            width: 48px;
+            height: 48px;
+            background-color: #333;
+            border-radius: 6px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .item-image img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .item-row {
+            display: flex;
+            align-items: center;
+        }
+        .trend-up {
+            color: #27ae60;
+        }
+        .trend-down {
+            color: #e74c3c;
+        }
+        .trend-icon {
+            margin-left: 5px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #333;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .desired-price-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .viewed-item-link {
+            display: block;
+            text-align: center;
+            color: #007bff;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+        .viewed-item-link:hover {
+            text-decoration: underline;
+        }
+        .desired-price-input {
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 6px;
+            background-color: #444;
+            color: #ddd;
+            font-size: 1em;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .modal-buttons button {
+            flex: 1;
+            margin: 0;
+        }
+        .item-name a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .item-name a:hover {
+            text-decoration: underline;
+        }
+        .eye-button {
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-right: 5px;
+        }
+        .eye-button:hover {
+            background-color: #777;
+        }
+        .eye-button svg {
+            width: 16px;
+            height: 16px;
+        }
+        .item-preview {
+            display: none;
+        }
+        .item-preview.active {
+            display: block;
+        }
+        .preview-container {
+            background-color: #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .preview-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .preview-details {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .preview-image {
+            width: 80px;
+            height: 80px;
+            background-color: #444;
+            border-radius: 8px;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-image img {
+            max-width: 80%;
+            max-height: 80%;
+        }
+        .preview-info {
+            flex-grow: 1;
+        }
+        .preview-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preview-stat {
+            background-color: #444;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #27ae60;
+        }
+        .pricing-table img.check-icon {
+            content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2327ae60' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+        }
+        .pricing-table img.x-icon {
+            content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23e74c3c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'%3E%3C/line%3E%3Cline x1='6' y1='6' x2='18' y2='18'%3E%3C/line%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Stalcraft Price Tracker</h1>
+        </header>
+        <nav class="app-nav">
+            <ul>
+                <li><a href="#profile" class="active">Кабинет</a></li>
+                <li><a href="#instructions">Инструкция</a></li>
+                <li><a href="#filtering">Предметы</a></li>
+                <li><a href="#tracking">Отслеживаемое</a></li>
+                <li><a href="#pricing">Тарифы</a></li>
+                <li><a href="#keygen">Создание ключей</a></li>
+                <li><a href="#activation">Активация ключей</a></li>
+                <li><a href="#admin">Админ-панель</a></li>
+            </ul>
+        </nav>
+        <main class="app-content" id="app-content">
+            <section id="profile" class="app-section active">
+                <h2>Кабинет</h2>
+                <p>Уровень подписки: <span class="subscription-info">Обычная</span></p>
+                <p>Действует до: <span class="subscription-info">2024-01-15</span></p>
+                <p>Слоты: <span class="subscription-info">44/100</span></p>
+                <button id="contact-support">Поддержка</button>
+            </section>
+            <section id="instructions" class="app-section">
+                <h2>Инструкция</h2>
+                <p>Здесь будет текст инструкции...</p>
+            </section>
+            <section id="filtering" class="app-section">
+                <h2>Предметы</h2>
+                <button class="filter-toggle">
+                    <span class="filter-text">Фильтры</span> 
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 4L6 8L10 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div class="filter-options">
+                    <input type="number" id="min-price" placeholder="Мин. цена">
+                    <input type="number" id="max-price" placeholder="Макс. цена">
+                    <input type="number" id="discount" placeholder="Скидка (%)">
+                    <select id="category">
+                        <option value="">Все категории</option>
+                        <option value="Оружие">Оружие</option>
+                        <option value="Броня">Броня</option>
+                        <option value="Модификации">Модификации</option>
+                        <option value="Артефакты">Артефакты</option>
+                        <option value="Расходуемые">Расходуемые</option>
+                        <option value="Прочее">Прочее</option>
+                    </select>
+                    <select id="server">
+                        <option value="EU">Европа</option>
+                        <option value="RU">Россия</option>
+                        <option value="NA">Северная Америка</option>
+                        <option value="SEA">Юго-Восточная Азия</option>
+                    </select>
+                </div>
+                 <div class="search-container">
+                     <input type="text" id="search-item" placeholder="Поиск предмета">
+                    <div class="item-details"></div>
+                    <div class="search-results" id="search-results"></div>
+                 </div>
+            </section>
+            <section id="tracking" class="app-section">
+                <h2>Отслеживаемое</h2>
+                <div id="tracked-items-container"></div>
+            </section>
+            <section id="pricing" class="app-section">
+                <h2>Тарифы</h2>
+                <table class="pricing-table">
+                    <thead>
+                        <tr>
+                            <th>Опция</th>
+                            <th>Обычный</th>
+                            <th>Продвинутый</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Цена</td><td id="display-price-normal">500 руб</td><td id="display-price-advanced">1000 руб</td></tr>
+                        <tr><td>Задержка отправки</td><td>3-5 секунд</td><td><img src="ix.png" alt="-" title="Нет"></td></tr>
+                        <tr><td>Доступ на 24 часа</td><td><img src="ix.png" alt="-" title="Нет"></td><td><img src="check.png" alt="✓" title="Да"></td></tr>
+                        <tr><td>Копирование названия</td><td><img src="ix.png" alt="-" title="Нет"></td><td><img src="check.png" alt="✓" title="Да"></td></tr>
+                        <tr><td>Расширенная статистика</td><td><img src="ix.png" alt="-" title="Нет"></td><td><img src="check.png" alt="✓" title="Да"></td></tr>
+                        <tr><td>Статистика по стакам</td><td><img src="ix.png" alt="-" title="Нет"></td><td><img src="check.png" alt="✓" title="Да"></td></tr>
+                    </tbody>
+                </table>
+            </section>
+            <section id="keygen" class="app-section">
+                <h2>Создание ключей</h2>
+                <select id="key-type" class="key-input">
+                    <option value="normal">Обычная подписка</option>
+                    <option value="advanced">Продвинутая подписка</option>
+                </select>
+                <input type="number" id="key-duration" class="key-input" placeholder="Срок действия (дни)">
+                <button id="generate-key">Сгенерировать ключ</button>
+                <p id="generated-key"></p>
+            </section>
+            <section id="activation" class="app-section">
+                <h2>Активация ключей</h2>
+                <input type="text" id="activation-key" class="key-input" placeholder="Введите ключ (xxxxx-xxxxx-xxxxx)">
+                <button id="activate-key">Активировать</button>
+            </section>
+            <section id="admin" class="app-section">
+                <h2>Админ-панель</h2>
+                <div class="admin-block">
+                    <h3>Пользователи (<span id="user-count">3</span>)</h3>
+                    <div class="user-list" id="user-list-container">
+                        </div>
+                </div>
+                <div class="admin-block">
+                    <h3>Рассылка</h3>
+                    <form class="broadcast-form" id="broadcast-form">
+                        <textarea placeholder="Введите сообщение для рассылки" id="broadcast-message"></textarea>
+                        <button type="submit">Отправить</button>
+                    </form>
+                </div>
+                <div class="admin-block">
+                    <h3>Редактирование тарифов</h3>
+                    <div class="pricing-editor" id="pricing-editor-form">
+                        <label>Обычный: <input type="number" id="price-normal" value="500"> руб</label>
+                        <label>Продвинутый: <input type="number" id="price-advanced" value="1000"> руб</label>
+                        <button type="button" id="save-prices">Сохранить</button>
+                    </div>
+                </div>
+                <div class="admin-block">
+                    <h3>Настройка тарифов</h3>
+                    <div class="settings-grid" id="tariff-settings-form">
+                        <label>Слоты (Обычный)<input type="number" id="slots-normal" value="100"></label>
+                        <label>Слоты (Продв.)<input type="number" id="slots-advanced" value="200"></label>
+                        <label>Задержка (сек)<input type="number" id="delay-setting" value="3"></label>
+                    </div>
+                    <button style="margin-top: 10px" id="apply-settings">Применить</button>
+                </div>
+            </section>
+        </main>
+        <footer class="app-footer">Подвал</footer>
+        <div class="notification" id="notification"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.app-nav a');
+            const sections = document.querySelectorAll('.app-section');
+            const appContent = document.getElementById('app-content');
+            const searchInput = document.getElementById('search-item');
+            const itemDetails = document.querySelector('#filtering .item-details');
+            const searchResults = document.getElementById('search-results');
+            const trackedItemsContainer = document.getElementById('tracked-items-container');
+            const minPriceInput = document.getElementById('min-price');
+            const maxPriceInput = document.getElementById('max-price');
+            const discountInput = document.getElementById('discount');
+            const categorySelect = document.getElementById('category');
+            const serverSelect = document.getElementById('server');
+            const filterToggle = document.querySelector('.filter-toggle');
+            const filterOptions = document.querySelector('.filter-options');
+            const filterToggleText = filterToggle.querySelector('.filter-text');
+            const generateKeyBtn = document.getElementById('generate-key');
+            const keyDurationInput = document.getElementById('key-duration');
+            const generatedKeyDisplay = document.getElementById('generated-key');
+            const activateKeyBtn = document.getElementById('activate-key');
+            const activationKeyInput = document.getElementById('activation-key');
+            const notification = document.getElementById('notification');
+            const contactSupportBtn = document.getElementById('contact-support');
+            const userListContainer = document.getElementById('user-list-container');
+            const userCountSpan = document.getElementById('user-count');
+            const broadcastForm = document.getElementById('broadcast-form');
+            const broadcastMessageInput = document.getElementById('broadcast-message');
+            const savePricesBtn = document.getElementById('save-prices');
+            const applySettingsBtn = document.getElementById('apply-settings');
+            const priceNormalInput = document.getElementById('price-normal');
+            const priceAdvancedInput = document.getElementById('price-advanced');
+            const slotsNormalInput = document.getElementById('slots-normal');
+            const slotsAdvancedInput = document.getElementById('slots-advanced');
+            const delaySettingInput = document.getElementById('delay-setting');
+
+            // Добавим стили для результатов поиска
+            const styleEl = document.createElement('style');
+            styleEl.textContent = `
+                .search-results {
+                    margin-top: 15px;
+                }
+                .search-result-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 12px;
+                    border: 1px solid #555;
+                    background-color: #383838;
+                    border-radius: 8px;
+                    margin-bottom: 10px;
+                    transition: all 0.3s ease;
+                }
+                .search-result-item:hover {
+                    background-color: #444;
+                }
+                .item-info {
+                    display: flex;
+                    flex-direction: column;
+                    flex-grow: 1;
+                }
+                .item-name {
+                    font-weight: 500;
+                    margin-bottom: 5px;
+                }
+                .item-price {
+                    color: #27ae60;
+                    font-weight: bold;
+                }
+                .item-meta {
+                    display: flex;
+                    gap: 10px;
+                    font-size: 0.85em;
+                    color: #aaa;
+                }
+                .item-actions {
+                    display: flex;
+                    gap: 8px;
+                }
+                .tracking-btn {
+                    background-color: #007bff;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 6px 10px;
+                    cursor: pointer;
+                    transition: background-color 0.2s ease;
+                }
+                .tracking-btn:hover {
+                    background-color: #0056b3;
+                }
+                .loading-spinner {
+                    display: none;
+                    text-align: center;
+                    padding: 20px;
+                }
+                .loading-spinner::after {
+                    content: '';
+                    display: inline-block;
+                    width: 30px;
+                    height: 30px;
+                    border: 3px solid #ddd;
+                    border-radius: 50%;
+                    border-top-color: #007bff;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                .no-results {
+                    text-align: center;
+                    padding: 20px;
+                    color: #aaa;
+                }
+                .eye-button {
+                    background-color: #555;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                    margin-right: 5px;
+                }
+                .eye-button:hover {
+                    background-color: #777;
+                }
+                .eye-button svg {
+                    width: 16px;
+                    height: 16px;
+                }
+                .item-preview {
+                    display: none;
+                }
+                .item-preview.active {
+                    display: block;
+                }
+                .preview-container {
+                    background-color: #333;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin-bottom: 15px;
+                }
+                .preview-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 10px;
+                }
+                .preview-close {
+                    background: none;
+                    border: none;
+                    color: #aaa;
+                    font-size: 20px;
+                    cursor: pointer;
+                }
+                .preview-details {
+                    display: flex;
+                    margin-bottom: 10px;
+                }
+                .preview-image {
+                    width: 80px;
+                    height: 80px;
+                    background-color: #444;
+                    border-radius: 8px;
+                    margin-right: 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .preview-image img {
+                    max-width: 80%;
+                    max-height: 80%;
+                }
+                .preview-info {
+                    flex-grow: 1;
+                }
+                .preview-stats {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                    margin-top: 10px;
+                }
+                .preview-stat {
+                    background-color: #444;
+                    padding: 8px;
+                    border-radius: 4px;
+                    text-align: center;
+                }
+                .stat-value {
+                    font-size: 1.2em;
+                    font-weight: 500;
+                    color: #27ae60;
+                }
+                .pricing-table img.check-icon {
+                    content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2327ae60' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+                }
+                .pricing-table img.x-icon {
+                    content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23e74c3c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'%3E%3C/line%3E%3Cline x1='6' y1='6' x2='18' y2='18'%3E%3C/line%3E%3C/svg%3E");
+                }
+            `;
+            document.head.appendChild(styleEl);
+
+            let subscriptionData = {
+                level: "Нет",
+                expirationDate: null,
+                slots: { used: 0, total: 10 },
+                generatedKeys: {}
+            };
+            
+            let items = [];
+            let trackedItems = [];
+            let isSearching = false;
+            let searchTimeout;
+            let currentViewedItem = null;
+
+            let adminData = {
+                users: [
+                    { id: '001', name: 'User1', plan: 'Продвинутая', expires: '2025-05-01', enabled: true },
+                    { id: '002', name: 'User2', plan: 'Обычная', expires: '2025-04-15', enabled: true },
+                    { id: '003', name: 'User3', plan: 'Продвинутая', expires: '2025-06-01', enabled: true },
+                ],
+                prices: { normal: 500, advanced: 1000 },
+                settings: { slotsNormal: 100, slotsAdvanced: 200, delay: 3 }
+            };
+
+            function updatePricingTableDisplay() {
+                const normalPriceCell = document.getElementById('display-price-normal');
+                const advancedPriceCell = document.getElementById('display-price-advanced');
+                if (normalPriceCell && advancedPriceCell) {
+                    normalPriceCell.textContent = `${adminData.prices.normal} руб`;
+                    advancedPriceCell.textContent = `${adminData.prices.advanced} руб`;
+                }
+            }
+
+            function showNotification(message, type = 'success') {
+                notification.textContent = message;
+                notification.style.backgroundColor = type === 'error' ? '#c0392b' : '#27ae60';
+                notification.classList.add('show');
+                setTimeout(() => notification.classList.remove('show'), 3000);
+            }
+
+            function updateSubscriptionDisplay() {
+                const subscriptionInfoElements = document.querySelectorAll('#profile .subscription-info');
+                if (subscriptionInfoElements.length >= 3) {
+                    subscriptionInfoElements[0].textContent = subscriptionData.level;
+                    
+                    if (subscriptionData.expirationDate) {
+                        const formattedDate = subscriptionData.expirationDate.toLocaleDateString('ru-RU');
+                        subscriptionInfoElements[1].textContent = formattedDate;
+                    } else {
+                        subscriptionInfoElements[1].textContent = 'Нет';
+                    }
+                    
+                    subscriptionInfoElements[2].textContent = `${subscriptionData.slots.used}/${subscriptionData.slots.total}`;
+                }
+            }
+
+            function setActiveSection(hash) {
+                navLinks.forEach(l => l.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+
+                const targetLink = document.querySelector(`.app-nav a[href="${hash}"]`);
+                const targetSection = document.querySelector(hash);
+
+                if (targetLink && targetSection) {
+                    targetLink.classList.add('active');
+                    targetSection.classList.add('active');
+                    appContent.scrollTop = 0;
+                } else {
+                    document.querySelector('.app-nav a[href="#profile"]').classList.add('active');
+                    document.querySelector('#profile').classList.add('active');
+                }
+            }
+
+            setActiveSection(window.location.hash || '#profile'); 
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', e => {
+                    e.preventDefault();
+                    const targetHash = link.getAttribute('href');
+                    setActiveSection(targetHash);
+                    window.location.hash = targetHash;
+                });
+            });
+
+            window.addEventListener('hashchange', () => {
+                setActiveSection(window.location.hash);
+            });
+
+            filterToggle.addEventListener('click', () => {
+                filterOptions.classList.toggle('open');
+                filterToggle.classList.toggle('active');
+                filterToggleText.textContent = filterOptions.classList.contains('open') ? 'Скрыть фильтры' : 'Фильтры';
+            });
+           
+            function renderItemSuggestions(filteredItems) {
+                itemDetails.innerHTML = "";
+                if (filteredItems.length > 0) {
+                    itemDetails.style.display = "block";
+                    filteredItems.forEach(item => {
+                        const itemElement = document.createElement('div');
+                        itemElement.classList.add('item');
+                        itemElement.dataset.itemId = item.id;
+                        itemElement.innerHTML = `
+                            <h3>${item.name} (${item.price} руб)</h3>
+                            <div class="price-input">
+                                <input type="number" class="custom-price-input" placeholder="Желаемая цена" value="${item.desiredPrice || ''}">
+                                <button class="track-button">${item.tracked ? 'Отслеживается' : 'Отслеживать'}</button>
+                            </div>
+                        `;
+                        itemDetails.appendChild(itemElement);
+                        
+                        const trackButton = itemElement.querySelector('.track-button');
+                        const customPriceInput = itemElement.querySelector('.custom-price-input');
+
+                        if (item.tracked) {
+                            trackButton.disabled = true;
+                        }
+
+                        trackButton.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const desiredPrice = parseInt(customPriceInput.value) || item.price;
+                            trackItem(item.id, desiredPrice);
+                            filterItems();
+                            renderTrackedItems();
+                        });
+                         
+                        itemElement.addEventListener('click', () => {
+                            const desiredPrice = parseInt(customPriceInput.value) || item.price;
+                            trackItem(item.id, desiredPrice);
+                            filterItems();
+                            renderTrackedItems();
+                        });
+                    });
+                } else {
+                    itemDetails.style.display = "none";
+                }
+            }
+
+            function filterItems() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const minPrice = parseInt(minPriceInput.value) || 0;
+                const maxPrice = parseInt(maxPriceInput.value) || Infinity;
+                const discount = parseInt(discountInput.value) || 0;
+                const category = categorySelect.value;
+
+                const filtered = items.filter(item => {
+                    const nameMatch = item.name.toLowerCase().includes(searchTerm);
+                    const priceMatch = item.price >= minPrice && item.price <= maxPrice;
+                    const discountMatch = item.discount >= discount;
+                    const categoryMatch = !category || item.category === category;
+                    return nameMatch && priceMatch && discountMatch && categoryMatch;
+                });
+                
+                const trackedIds = new Set(trackedItems);
+                filtered.forEach(item => item.tracked = trackedIds.has(item.id));
+
+                renderItemSuggestions(filtered);
+            }
+
+            [searchInput, minPriceInput, maxPriceInput, discountInput, categorySelect].forEach(input => {
+                input.addEventListener('input', filterItems);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!itemDetails.contains(e.target) && e.target !== searchInput) {
+                    itemDetails.style.display = 'none';
+                }
+            });
+            
+            searchInput.addEventListener('focus', filterItems);
+            searchInput.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (!itemDetails.matches(':hover')) {
+                        itemDetails.style.display = 'none';
+                    }
+                }, 150);
+            });
+            searchInput.addEventListener('keydown', e => { 
+                if (e.key === 'Enter') {
+                    searchInput.blur(); 
+                    itemDetails.style.display = 'none'; 
+                }
+            });
+
+            function trackItem(itemId, desiredPrice) {
+                if (trackedItems.length >= subscriptionData.slots.total) {
+                    showNotification('Достигнут лимит слотов отслеживания', 'error');
+                    return;
+                }
+                if (!trackedItems.includes(itemId)) {
+                    const item = items.find(i => i.id === itemId);
+                    if (item) {
+                        item.desiredPrice = desiredPrice;
+                        trackedItems.push(itemId);
+                        subscriptionData.slots.used = trackedItems.length;
+                        updateSubscriptionDisplay();
+                        showNotification(`Предмет "${item.name}" добавлен в отслеживаемое`);
+                    }
+                } else {
+                    showNotification('Предмет уже отслеживается', 'error');
+                }
+            }
+
+            function untrackItem(itemId) {
+                const index = trackedItems.indexOf(itemId);
+                if (index > -1) {
+                    const item = trackedItems[index];
+                    trackedItems.splice(index, 1);
+                    subscriptionData.slots.used = trackedItems.length;
+                    updateSubscriptionDisplay();
+                    renderTrackedItems();
+                    
+                    // Обновляем кнопку в результатах поиска если предмет все еще в списке
+                    const trackButton = document.querySelector(`.tracking-btn[data-item-id="${itemId}"]`);
+                    if (trackButton) {
+                        trackButton.textContent = 'Отслеживать';
+                        trackButton.disabled = false;
+                        trackButton.style.backgroundColor = '#007bff';
+                    }
+                    
+                    if (item) {
+                        showNotification(`Предмет "${item.name}" удален из отслеживаемого`);
+                    }
+                }
+            }
+
+            function renderTrackedItems() {
+                trackedItemsContainer.innerHTML = '';
+                if (trackedItems.length === 0) {
+                    trackedItemsContainer.innerHTML = '<p>Нет отслеживаемых предметов.</p>';
+                    return;
+                }
+                
+                // Добавляем контейнер для предпросмотра
+                const previewContainer = document.createElement('div');
+                previewContainer.className = 'preview-container item-preview';
+                previewContainer.id = 'item-preview';
+                trackedItemsContainer.appendChild(previewContainer);
+                
+                trackedItems.forEach(item => {
+                    const isProfitable = item.price <= item.desiredPrice; 
+                    const trackedItemElement = document.createElement('div');
+                    trackedItemElement.classList.add('tracked-item', isProfitable ? 'profitable' : 'unprofitable');
+                    
+                    // Вычисляем разницу между текущей и желаемой ценой
+                    const priceDiff = item.desiredPrice - item.price;
+                    const diffPercentage = ((priceDiff / item.desiredPrice) * 100).toFixed(1);
+                    const diffText = priceDiff >= 0 ? 
+                        `+${formatPrice(priceDiff)} (${diffPercentage}%)` : 
+                        `${formatPrice(priceDiff)} (${diffPercentage}%)`;
+                    
+                    trackedItemElement.innerHTML = `
+                        <div class="item-row">
+                            <div class="item-image">
+                                <img src="${getItemImageUrl(item.id, item.category)}" alt="${item.name}">
+                            </div>
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <a href="https://stalcraft.trade/auction/in-game/${item.id}?server=${item.server}" target="_blank">
+                                        ${item.name}
+                                    </a>
+                                </div>
+                                <div>Цель: ${formatPrice(item.desiredPrice)}</div>
+                                <div>Текущая: ${formatPrice(item.price)}</div>
+                                <div>Разница: <span style="color: ${isProfitable ? '#27ae60' : '#e74c3c'}">${diffText}</span></div>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <button class="eye-button" data-item-id="${item.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                                <button class="untrack-btn" data-item-id="${item.id}" style="background: #e74c3c; color: white; border: none; padding: 3px 6px; border-radius: 4px; cursor: pointer;">X</button>
+                            </div>
+                        </div>
+                    `;
+                    trackedItemsContainer.appendChild(trackedItemElement);
+
+                    trackedItemElement.querySelector('.untrack-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        untrackItem(item.id);
+                    });
+                    
+                    const eyeButton = trackedItemElement.querySelector('.eye-button');
+                    eyeButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showItemPreview(item);
+                    });
+                     
+                    trackedItemElement.addEventListener('click', (e) => {
+                        // Если клик не на ссылке и не на кнопке удаления
+                        if (!e.target.closest('a') && !e.target.closest('.untrack-btn') && !e.target.closest('.eye-button')) {
+                            navigator.clipboard.writeText(item.name)
+                                .then(() => showNotification(`Название "${item.name}" скопировано`))
+                                .catch(() => showNotification('Не удалось скопировать', 'error'));
+                        }
+                    });
+                });
+            }
+
+            function generateKeyString() {
+                const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let key = '';
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 5; j++) {
+                        key += characters.charAt(Math.floor(Math.random() * characters.length));
+                    }
+                    if (i < 2) key += '-';
+                }
+                return key;
+            }
+
+            // Получаем элемент выбора типа ключа
+            const keyTypeSelect = document.getElementById('key-type');
+
+            generateKeyBtn.addEventListener('click', () => {
+                const duration = parseInt(keyDurationInput.value);
+                const keyType = keyTypeSelect.value;
+                
+                if (!duration || duration <= 0) {
+                    showNotification('Введите корректный срок действия (в днях)', 'error');
+                    return;
+                }
+                
+                const key = generateKeyString();
+                subscriptionData.generatedKeys[key] = {
+                    duration: duration,
+                    type: keyType
+                };
+                
+                generatedKeyDisplay.textContent = key;
+                generatedKeyDisplay.style.display = 'block';
+                showNotification(`Ключ ${keyType === 'advanced' ? 'продвинутой' : 'обычной'} подписки на ${duration} дней сгенерирован`);
+                keyDurationInput.value = '';
+            });
+
+            generatedKeyDisplay.addEventListener('click', () => {
+                const key = generatedKeyDisplay.textContent;
+                if (key) {
+                    navigator.clipboard.writeText(key)
+                        .then(() => showNotification('Ключ скопирован'))
+                        .catch(() => showNotification('Не удалось скопировать ключ', 'error'));
+                }
+            });
+
+            activateKeyBtn.addEventListener('click', () => {
+                const key = activationKeyInput.value.trim().toUpperCase();
+                if (!/^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/.test(key)) {
+                    showNotification('Неверный формат ключа (должен быть XXXXX-XXXXX-XXXXX)', 'error');
+                    return;
+                }
+
+                if (subscriptionData.generatedKeys[key]) {
+                    const keyData = subscriptionData.generatedKeys[key];
+                    const keyDuration = keyData.duration;
+                    const keyType = keyData.type;
+                    
+                    // Устанавливаем тип подписки
+                    subscriptionData.level = keyType === 'advanced' ? 'Продвинутая' : 'Обычная';
+                    
+                    // Устанавливаем количество слотов в зависимости от типа подписки
+                    subscriptionData.slots.total = keyType === 'advanced' ? 
+                        adminData.settings.slotsAdvanced : 
+                        adminData.settings.slotsNormal;
+                    
+                    // Устанавливаем срок действия
+                    const today = new Date();
+                    
+                    // Если уже есть действующая подписка и срок ещё не истёк, продлеваем от текущей даты окончания
+                    let startDate = today;
+                    if (subscriptionData.expirationDate && subscriptionData.expirationDate > today) {
+                        startDate = new Date(subscriptionData.expirationDate);
+                    }
+                    
+                    // Добавляем дни
+                    const expirationDate = new Date(startDate);
+                    expirationDate.setDate(expirationDate.getDate() + keyDuration);
+                    subscriptionData.expirationDate = expirationDate;
+                    
+                    // Удаляем использованный ключ
+                    delete subscriptionData.generatedKeys[key];
+                    
+                    updateSubscriptionDisplay();
+                    showNotification(`Ключ успешно активирован! ${subscriptionData.level} подписка продлена на ${keyDuration} дней.`);
+                    activationKeyInput.value = '';
+                } else {
+                    showNotification('Ключ не найден или уже использован', 'error');
+                }
+            });
+            
+            function renderAdminUsers() {
+                userListContainer.innerHTML = '';
+                userCountSpan.textContent = adminData.users.length;
+                adminData.users.forEach(user => {
+                    const userItem = document.createElement('div');
+                    userItem.classList.add('user-item');
+                    userItem.innerHTML = `
+                        <div class="user-info">
+                            <span>${user.name} (ID: ${user.id})</span>
+                            <span class="plan">${user.expires} | ${user.plan}</span>
+                        </div>
+                        <button class="disable-btn" data-user-id="${user.id}" style="background-color: ${user.enabled ? '#c0392b' : '#27ae60'};">
+                            ${user.enabled ? 'Отключить' : 'Включить'}
+                        </button>
+                    `;
+                    userListContainer.appendChild(userItem);
+
+                    userItem.querySelector('.disable-btn').addEventListener('click', (e) => {
+                        const userId = e.target.dataset.userId;
+                        toggleUserStatus(userId);
+                    });
+                });
+            }
+
+            function toggleUserStatus(userId) {
+                const user = adminData.users.find(u => u.id === userId);
+                if (user) {
+                    user.enabled = !user.enabled;
+                    console.log(`Simulating ${user.enabled ? 'enabling' : 'disabling'} user ${userId}`);
+                    renderAdminUsers();
+                    showNotification(`Статус пользователя ${user.name} изменен`);
+                }
+            }
+
+            // Обработка рассылки сообщений - реализуем через Telegram Mini App API
+            broadcastForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const message = broadcastMessageInput.value.trim();
+                if (message) {
+                    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                        // Используем Telegram Mini App API для отправки сообщений
+                        try {
+                            // В реальном приложении здесь будет код для отправки сообщения через бэкенд
+                            // Сейчас просто имитируем успешную отправку
+                            console.log("Отправка сообщения через Telegram WebApp:", message);
+                            
+                            // Показываем уведомление пользователям через Telegram
+                            if (window.Telegram.WebApp.showPopup) {
+                                window.Telegram.WebApp.showPopup({
+                                    title: 'Уведомление',
+                                    message: message,
+                                    buttons: [{type: 'ok'}]
+                                });
+                            }
+                            
+                            showNotification('Рассылка отправлена');
+                            broadcastMessageInput.value = '';
+                        } catch (error) {
+                            console.error("Error sending broadcast:", error);
+                            showNotification('Ошибка при отправке рассылки', 'error');
+                        }
+                    } else {
+                        // Имитация для локального тестирования
+                        console.log("Simulating broadcast:", message);
+                        showNotification('Рассылка отправлена');
+                        broadcastMessageInput.value = '';
+                    }
+                } else {
+                    showNotification('Введите сообщение для рассылки', 'error');
+                }
+            });
+
+            savePricesBtn.addEventListener('click', () => {
+                const normalPrice = parseInt(priceNormalInput.value);
+                const advancedPrice = parseInt(priceAdvancedInput.value);
+                if (!isNaN(normalPrice) && !isNaN(advancedPrice) && normalPrice >= 0 && advancedPrice >= 0) {
+                    adminData.prices.normal = normalPrice;
+                    adminData.prices.advanced = advancedPrice;
+                    console.log("Simulating save prices:", adminData.prices);
+                    updatePricingTableDisplay();
+                    showNotification('Цены тарифов сохранены');
+                } else {
+                    showNotification('Введите корректные цены', 'error');
+                }
+            });
+
+            applySettingsBtn.addEventListener('click', () => {
+                const slotsNormal = parseInt(slotsNormalInput.value);
+                const slotsAdvanced = parseInt(slotsAdvancedInput.value);
+                const delay = parseInt(delaySettingInput.value);
+
+                if (!isNaN(slotsNormal) && slotsNormal >= 0 &&
+                    !isNaN(slotsAdvanced) && slotsAdvanced >= 0 &&
+                    !isNaN(delay) && delay >= 0) {
+                    
+                    adminData.settings.slotsNormal = slotsNormal;
+                    adminData.settings.slotsAdvanced = slotsAdvanced;
+                    adminData.settings.delay = delay;
+                    console.log("Simulating apply settings:", adminData.settings);
+                    showNotification('Настройки тарифов применены');
+                } else {
+                    showNotification('Введите корректные числовые значения для слотов и задержки', 'error');
+                }
+            });
+
+            function loadAdminData() {
+                priceNormalInput.value = adminData.prices.normal;
+                priceAdvancedInput.value = adminData.prices.advanced;
+                slotsNormalInput.value = adminData.settings.slotsNormal;
+                slotsAdvancedInput.value = adminData.settings.slotsAdvanced;
+                delaySettingInput.value = adminData.settings.delay;
+                renderAdminUsers();
+            }
+             
+            if (window.location.hash === '#admin') {
+                loadAdminData();
+            }
+            
+            const observer = new MutationObserver((mutationsList) => {
+                for(let mutation of mutationsList) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        const adminSection = document.getElementById('admin');
+                        if (adminSection.classList.contains('active')) {
+                            loadAdminData();
+                        }
+                    }
+                }
+            });
+            observer.observe(document.getElementById('admin'), { attributes: true });
+             
+            contactSupportBtn.addEventListener('click', () => {
+                window.location.href = 'mailto:support@example.com?subject=Stalcraft Price Tracker Support'; 
+                showNotification('Открытие почтового клиента...');
+            });
+
+            // Функция для периодического обновления данных об отслеживаемых предметах
+            async function updateTrackedItemsData() {
+                if (trackedItems.length === 0) return;
+                
+                try {
+                    for (const item of trackedItems) {
+                        // В реальном приложении здесь был бы запрос к API для каждого предмета
+                        // const apiUrl = `https://your-backend-proxy.com/stalcraft-api/items/${item.id}`;
+                        // const params = new URLSearchParams({
+                        //     server: item.server || 'EU'
+                        // });
+                        // 
+                        // const response = await fetch(`${apiUrl}?${params}`);
+                        // 
+                        // if (!response.ok) continue;
+                        // 
+                        // const data = await response.json();
+                        // 
+                        // if (data && data.price) {
+                        //     item.price = data.price;
+                        // }
+                        
+                        // Для демонстрации используем случайное изменение цены
+                        const priceChange = Math.floor(Math.random() * 5000) - 2500; // Случайное изменение от -2500 до +2500
+                        item.price = Math.max(1, item.price + priceChange);
+                    }
+                    
+                    renderTrackedItems();
+                    showNotification('Цены обновлены');
+                } catch (error) {
+                    console.error('Ошибка при обновлении цен:', error);
+                    showNotification('Ошибка при обновлении цен', 'error');
+                }
+            }
+
+            // Кнопка для ручного обновления цен
+            const updatePricesBtn = document.createElement('button');
+            updatePricesBtn.textContent = 'Обновить цены';
+            updatePricesBtn.style.marginBottom = '15px';
+            const trackingSection = document.getElementById('tracking');
+            trackingSection.insertBefore(updatePricesBtn, trackedItemsContainer);
+            updatePricesBtn.addEventListener('click', updateTrackedItemsData);
+
+            // Обновление цен каждые 5 минут автоматически
+            setInterval(updateTrackedItemsData, 5 * 60 * 1000);
+
+            updateSubscriptionDisplay();
+            renderTrackedItems(); 
+            updatePricingTableDisplay();
+
+            // Создаем модальное окно для ввода желаемой цены
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <button class="modal-close">&times;</button>
+                    <h3>Установить желаемую цену</h3>
+                    <div class="desired-price-form">
+                        <input type="number" id="desired-price-input" class="desired-price-input" placeholder="Введите желаемую цену">
+                        <div class="modal-buttons">
+                            <button id="track-with-price">Отслеживать</button>
+                            <button id="cancel-track">Отмена</button>
+                        </div>
+                    </div>
+                    <a href="#" class="viewed-item-link" id="viewed-item-link" target="_blank">Открыть на stalcraft.trade</a>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            const desiredPriceInput = document.getElementById('desired-price-input');
+            const trackWithPriceBtn = document.getElementById('track-with-price');
+            const cancelTrackBtn = document.getElementById('cancel-track');
+            const modalCloseBtn = document.querySelector('.modal-close');
+            const viewedItemLink = document.getElementById('viewed-item-link');
+
+            function openModal(item) {
+                currentViewedItem = item;
+                desiredPriceInput.value = item.price;
+                viewedItemLink.href = `https://stalcraft.trade/auction/in-game/${item.id}?server=${item.server || serverSelect.value}`;
+                modal.style.display = 'flex';
+            }
+
+            function closeModal() {
+                modal.style.display = 'none';
+                currentViewedItem = null;
+                desiredPriceInput.value = '';
+            }
+
+            modalCloseBtn.addEventListener('click', closeModal);
+            cancelTrackBtn.addEventListener('click', closeModal);
+
+            trackWithPriceBtn.addEventListener('click', () => {
+                if (currentViewedItem) {
+                    const desiredPrice = parseInt(desiredPriceInput.value);
+                    if (!desiredPrice || desiredPrice <= 0) {
+                        showNotification('Введите корректную желаемую цену', 'error');
+                        return;
+                    }
+                    currentViewedItem.desiredPrice = desiredPrice;
+                    trackItemFromSearch(currentViewedItem);
+                    closeModal();
+                }
+            });
+
+            // Закрытие модального окна при клике на фон
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Функция для получения данных с stalcraft.trade
+            async function searchStalcraftItems(query, options = {}) {
+                if (!query || query.length < 2) return { items: [] };
+                
+                const loadingSpinner = document.createElement('div');
+                loadingSpinner.className = 'loading-spinner';
+                searchResults.innerHTML = '';
+                searchResults.appendChild(loadingSpinner);
+                loadingSpinner.style.display = 'block';
+                
+                try {
+                    // В реальном приложении здесь бы делался запрос к серверу,
+                    // который пересылает запрос на stalcraft.trade из-за CORS ограничений
+                    // Но для демонстрации мы создадим имитацию ответа сервера
+                    
+                    // Имитация задержки сетевого запроса
+                    await new Promise(resolve => setTimeout(resolve, 700));
+                    
+                    // Фильтры из опций
+                    const server = options.server || serverSelect.value || 'EU';
+                    const minPrice = parseInt(options.minPrice) || 0;
+                    const maxPrice = parseInt(options.maxPrice) || Infinity;
+                    const category = options.category || '';
+                    
+                    // Имитация данных с сервера stalcraft.trade
+                    const mockItems = [
+                        { id: '12345', name: 'АКМ "Изверг"', category: 'Оружие', price: 85000, server },
+                        { id: '23456', name: 'ПМ "Шальной"', category: 'Оружие', price: 12000, server },
+                        { id: '34567', name: 'АКСУ "Тень"', category: 'Оружие', price: 65000, server },
+                        { id: '45678', name: 'Броня "Ветеран"', category: 'Броня', price: 120000, server },
+                        { id: '56789', name: 'Шлем "Штурм"', category: 'Броня', price: 45000, server },
+                        { id: '67890', name: 'Прицел ПСО-1', category: 'Модификации', price: 18000, server },
+                        { id: '78901', name: 'Подствольный гранатомет', category: 'Модификации', price: 35000, server },
+                        { id: '89012', name: 'Артефакт "Медуза"', category: 'Артефакты', price: 250000, server },
+                        { id: '90123', name: 'Артефакт "Каменный цветок"', category: 'Артефакты', price: 180000, server },
+                        { id: '01234', name: 'Аптечка научная', category: 'Расходуемые', price: 5000, server }
+                    ];
+                    
+                    // Фильтруем мок-данные в соответствии с параметрами запроса
+                    const filteredItems = mockItems
+                        .filter(item => item.name.toLowerCase().includes(query.toLowerCase()))
+                        .filter(item => item.price >= minPrice && (maxPrice === Infinity || item.price <= maxPrice))
+                        .filter(item => !category || item.category === category);
+                    
+                    return { items: filteredItems };
+                    
+                    // В реальном коде здесь был бы настоящий запрос к API:
+                    /*
+                    const apiUrl = 'https://your-backend-proxy.com/stalcraft-api/items/search';
+                    
+                    const params = new URLSearchParams({
+                        server: options.server || serverSelect.value || 'EU',
+                        search: query,
+                    });
+                    
+                    if (options.minPrice) params.append('priceMin', options.minPrice);
+                    if (options.maxPrice) params.append('priceMax', options.maxPrice);
+                    if (options.category) params.append('category', options.category);
+                    
+                    const response = await fetch(`${apiUrl}?${params}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    return await response.json();
+                    */
+                } catch (error) {
+                    console.error('Ошибка при поиске:', error);
+                    showNotification('Ошибка при поиске предметов', 'error');
+                    return { items: [] };
+                } finally {
+                    loadingSpinner.style.display = 'none';
+                }
+            }
+
+            // Функция для получения иконки предмета (имитация)
+            function getItemImageUrl(itemId, category) {
+                // В реальном приложении URL изображения был бы получен из API
+                // Для демонстрации используем фиксированный набор изображений на основе категории
+                
+                const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
+                
+                const categoryImages = {
+                    'Оружие': "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6L6 18'%3E%3C/path%3E%3Cpath d='M15 6h3v3'%3E%3C/path%3E%3Cpath d='M6 9v3'%3E%3C/path%3E%3Cpath d='M6 6h3'%3E%3C/path%3E%3Cpath d='M12 12l-3 3'%3E%3C/path%3E%3C/svg%3E",
+                    'Броня': "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'%3E%3C/path%3E%3C/svg%3E",
+                    'Модификации': "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'%3E%3C/circle%3E%3Cpath d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z'%3E%3C/path%3E%3C/svg%3E",
+                    'Артефакты': "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'%3E%3C/polygon%3E%3C/svg%3E",
+                    'Расходуемые': "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'%3E%3C/path%3E%3C/svg%3E",
+                    'Прочее': "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3C/svg%3E"
+                };
+                
+                return categoryImages[category] || defaultImage;
+            }
+
+            // Функция для отображения результатов поиска
+            function displaySearchResults(results) {
+                searchResults.innerHTML = '';
+                
+                if (!results || results.length === 0) {
+                    searchResults.innerHTML = '<div class="no-results">Ничего не найдено</div>';
+                    return;
+                }
+                
+                results.forEach(item => {
+                    const isTracked = trackedItems.some(tracked => tracked.id === item.id);
+                    
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'search-result-item';
+                    
+                    // Генерируем случайный тренд цены для демонстрации
+                    const trendPercentage = (Math.random() * 10 - 5).toFixed(1);
+                    const trendClass = parseFloat(trendPercentage) >= 0 ? 'trend-up' : 'trend-down';
+                    const trendIcon = parseFloat(trendPercentage) >= 0 ? '↑' : '↓';
+                    
+                    itemElement.innerHTML = `
+                        <div class="item-row">
+                            <div class="item-image">
+                                <img src="${getItemImageUrl(item.id, item.category)}" alt="${item.name}">
+                            </div>
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <a href="https://stalcraft.trade/auction/in-game/${item.id}?server=${item.server || serverSelect.value}" target="_blank">
+                                        ${item.name}
+                                    </a>
+                                </div>
+                                <div class="item-price">
+                                    ${formatPrice(item.price)}
+                                    <span class="trend-icon ${trendClass}">${trendIcon} ${Math.abs(trendPercentage)}%</span>
+                                </div>
+                                <div class="item-meta">
+                                    <span>Категория: ${item.category || 'Неизвестно'}</span>
+                                    <span>Сервер: ${item.server || serverSelect.value || 'EU'}</span>
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="tracking-btn" data-item-id="${item.id}">
+                                    ${isTracked ? 'Отслеживается' : 'Отслеживать'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    searchResults.appendChild(itemElement);
+                    
+                    const trackButton = itemElement.querySelector('.tracking-btn');
+                    
+                    if (isTracked) {
+                        trackButton.disabled = true;
+                        trackButton.style.backgroundColor = '#555';
+                    }
+                    
+                    trackButton.addEventListener('click', () => {
+                        openModal(item);
+                    });
+                });
+            }
+
+            // Форматирование цены
+            function formatPrice(price) {
+                return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
+            }
+
+            // Обработка поиска
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                
+                clearTimeout(searchTimeout);
+                
+                if (query.length < 2) {
+                    searchResults.innerHTML = '';
+                    return;
+                }
+                
+                searchTimeout = setTimeout(async () => {
+                    if (isSearching) return;
+                    
+                    isSearching = true;
+                    
+                    const options = {
+                        server: serverSelect.value,
+                        minPrice: minPriceInput.value || undefined,
+                        maxPrice: maxPriceInput.value || undefined,
+                        category: categorySelect.value || undefined
+                    };
+                    
+                    const results = await searchStalcraftItems(query, options);
+                    
+                    if (results && results.items) {
+                        items = results.items;
+                        displaySearchResults(items);
+                    }
+                    
+                    isSearching = false;
+                }, 500);
+            });
+
+            // Отслеживание предмета из результатов поиска
+            function trackItemFromSearch(item) {
+                if (trackedItems.length >= subscriptionData.slots.total) {
+                    showNotification('Достигнут лимит слотов отслеживания', 'error');
+                    return;
+                }
+                
+                if (!trackedItems.some(tracked => tracked.id === item.id)) {
+                    const trackedItem = {
+                        id: item.id,
+                        name: item.name,
+                        category: item.category || 'Прочее',
+                        price: item.price || 0,
+                        desiredPrice: item.price || 0,
+                        server: item.server || serverSelect.value || 'EU'
+                    };
+                    
+                    trackedItems.push(trackedItem);
+                    
+                    subscriptionData.slots.used = trackedItems.length;
+                    updateSubscriptionDisplay();
+                    renderTrackedItems();
+                    showNotification(`Предмет "${item.name}" добавлен в отслеживаемое`);
+                    
+                    // Обновить кнопку в результатах поиска
+                    const trackButton = document.querySelector(`.tracking-btn[data-item-id="${item.id}"]`);
+                    if (trackButton) {
+                        trackButton.textContent = 'Отслеживается';
+                        trackButton.disabled = true;
+                        trackButton.style.backgroundColor = '#555';
+                    }
+                } else {
+                    showNotification('Предмет уже отслеживается', 'error');
+                }
+            }
+
+            // Обработчики изменений фильтров
+            [minPriceInput, maxPriceInput, categorySelect, serverSelect].forEach(input => {
+                input.addEventListener('change', () => {
+                    const query = searchInput.value.trim();
+                    if (query.length >= 2) {
+                        clearTimeout(searchTimeout);
+                        searchTimeout = setTimeout(() => {
+                            searchInput.dispatchEvent(new Event('input'));
+                        }, 300);
+                    }
+                });
+            });
+
+            // Функция для отображения детального предпросмотра предмета
+            function showItemPreview(item) {
+                const previewContainer = document.getElementById('item-preview');
+                if (!previewContainer) return;
+                
+                // Генерируем случайные данные для демонстрации
+                const lowestPrice = Math.floor(item.price * 0.9);
+                const highestPrice = Math.floor(item.price * 1.1);
+                const avgPrice = Math.floor((lowestPrice + highestPrice) / 2);
+                const soldToday = Math.floor(Math.random() * 20);
+                
+                previewContainer.classList.add('active');
+                previewContainer.innerHTML = `
+                    <div class="preview-header">
+                        <h3>${item.name}</h3>
+                        <button class="preview-close">&times;</button>
+                    </div>
+                    <div class="preview-details">
+                        <div class="preview-image">
+                            <img src="${getItemImageUrl(item.id, item.category)}" alt="${item.name}">
+                        </div>
+                        <div class="preview-info">
+                            <p><strong>Категория:</strong> ${item.category}</p>
+                            <p><strong>Сервер:</strong> ${item.server}</p>
+                            <p><strong>Цель:</strong> ${formatPrice(item.desiredPrice)}</p>
+                            <p><strong>Текущая цена:</strong> ${formatPrice(item.price)}</p>
+                        </div>
+                    </div>
+                    <div class="preview-stats">
+                        <div class="preview-stat">
+                            <div>Мин. цена</div>
+                            <div class="stat-value">${formatPrice(lowestPrice)}</div>
+                        </div>
+                        <div class="preview-stat">
+                            <div>Макс. цена</div>
+                            <div class="stat-value">${formatPrice(highestPrice)}</div>
+                        </div>
+                        <div class="preview-stat">
+                            <div>Средняя цена</div>
+                            <div class="stat-value">${formatPrice(avgPrice)}</div>
+                        </div>
+                        <div class="preview-stat">
+                            <div>Продано сегодня</div>
+                            <div class="stat-value">${soldToday}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <a href="https://stalcraft.trade/auction/in-game/${item.id}?server=${item.server}" target="_blank" style="display: inline-block; background-color: #007bff; color: white; padding: 8px 12px; border-radius: 4px; text-decoration: none;">
+                            Открыть на stalcraft.trade
+                        </a>
+                    </div>
+                `;
+                
+                const closeButton = previewContainer.querySelector('.preview-close');
+                closeButton.addEventListener('click', () => {
+                    previewContainer.classList.remove('active');
+                });
+            }
+
+            // Фиксируем отображение галочек и крестиков в таблице тарифов
+            document.querySelectorAll('.pricing-table img').forEach(img => {
+                if (img.alt === '✓') {
+                    img.classList.add('check-icon');
+                } else if (img.alt === '-') {
+                    img.classList.add('x-icon');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
