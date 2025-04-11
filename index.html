@@ -737,14 +737,14 @@
         </header>
         <nav class="app-nav">
             <ul>
-                <li><a href="#profile" class="active">Кабинет</a></li>
-                <li><a href="#instructions">Инструкция</a></li>
-                <li><a href="#filtering">Предметы</a></li>
-                <li><a href="#tracking">Отслеживаемое</a></li>
-                <li><a href="#pricing">Тарифы</a></li>
-                <li><a href="#keygen">Создание ключей</a></li>
-                <li><a href="#activation">Активация ключей</a></li>
-                <li><a href="#admin">Админ-панель</a></li>
+                <li><a href="#profile" data-section="profile" class="active">Кабинет</a></li>
+                <li><a href="#instructions" data-section="instructions">Инструкция</a></li>
+                <li><a href="#filtering" data-section="filtering">Предметы</a></li>
+                <li><a href="#tracking" data-section="tracking">Отслеживаемое</a></li>
+                <li><a href="#pricing" data-section="pricing">Тарифы</a></li>
+                <li><a href="#keygen" data-section="keygen">Создание ключей</a></li>
+                <li><a href="#activation" data-section="activation">Активация ключей</a></li>
+                <li><a href="#admin" data-section="admin">Админ-панель</a></li>
             </ul>
         </nav>
         <main class="app-content" id="app-content">
@@ -1132,24 +1132,31 @@
             }
 
             function setActiveSection(hash) {
+                // Убираем активные классы у всех элементов
                 navLinks.forEach(l => l.classList.remove('active'));
                 sections.forEach(s => s.classList.remove('active'));
 
+                // Находим элементы по хешу
                 const targetLink = document.querySelector(`.app-nav a[href="${hash}"]`);
-                const targetSection = document.querySelector(hash);
+                const targetSection = document.getElementById(hash.substring(1));
 
                 if (targetLink && targetSection) {
+                    // Устанавливаем активные классы
                     targetLink.classList.add('active');
                     targetSection.classList.add('active');
+                    // Прокручиваем содержимое вверх
                     appContent.scrollTop = 0;
                 } else {
+                    // Устанавливаем кабинет по умолчанию
                     document.querySelector('.app-nav a[href="#profile"]').classList.add('active');
-                    document.querySelector('#profile').classList.add('active');
+                    document.getElementById('profile').classList.add('active');
                 }
             }
 
-            setActiveSection(window.location.hash || '#profile'); 
+            // Устанавливаем активную секцию при загрузке
+            setActiveSection(window.location.hash || '#profile');
 
+            // Добавляем обработчики событий для навигации
             navLinks.forEach(link => {
                 link.addEventListener('click', e => {
                     e.preventDefault();
@@ -1158,7 +1165,8 @@
                     window.location.hash = targetHash;
                 });
             });
-
+            
+            // Обработчик изменения хеша в URL
             window.addEventListener('hashchange', () => {
                 setActiveSection(window.location.hash);
             });
